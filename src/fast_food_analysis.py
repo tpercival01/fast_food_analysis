@@ -81,7 +81,9 @@ def get_kfc_data(town):
     selenium_driver.refresh()
     sleep(2)
 
-    selenium_driver.find_element(By.CSS_SELECTOR, 'button[title^="Zoom out"]').click()
+    if selenium_driver.find_element(By.CSS_SELECTOR, 'button[title^="Zoom out"]').is_enabled():
+        selenium_driver.find_element(By.CSS_SELECTOR, 'button[title^="Zoom out"]').click()
+    
     sleep(1)
 
     if selenium_driver.find_element(By.CSS_SELECTOR, 'button[title^="Zoom out"]').is_enabled():
@@ -115,20 +117,21 @@ def get_subway_data(town):
     num_pages = selenium_driver.find_element(By.CLASS_NAME, "locatorResultsPaging").text.split(" ")[3]
     arr_of_addresses = []
     for i in range(int(num_pages) - 1):
-        parent_div = selenium_driver.find_elements(By.CLASS_NAME, "locatorAddressCityState")
+        parent_div = selenium_driver.find_elements(By.CLASS_NAME, "locatorMainInfo")
+        
+        for location_card in parent_div:
+            find_town = location_card.find_element(By.CLASS_NAME, "locatorAddressCityState").text
 
-        for i in parent_div:
-            if i.is_enabled():
-                if i.text.split(",")[0] == town:
-                    main_address = selenium_driver.find_element(By.CLASS_NAME, "storeMainAddress").text
-                    temp_tuple = (main_address, i.text)
-                    arr_of_addresses.append(temp_tuple)
-
+            if find_town.split(",")[0] == town:
+                main_address = location_card.find_element(By.CLASS_NAME, "storeMainAddress").text
+                temp_tuple = (main_address, find_town)
+                arr_of_addresses.append(temp_tuple)
+    
         selenium_driver.find_element(By.CLASS_NAME, "sprite-next-page-arrow ").click()
 
-    print(arr_of_addresses)
+    close_selenium(selenium_driver)
 
-    #close_selenium(selenium_driver)
+    return arr_of_addresses
 
 def export_data_to_csv(arr_locations, restaurant_name, town):
     with open("test.csv", mode="a+", newline="") as store_file:
@@ -158,6 +161,12 @@ def export_data_to_csv(arr_locations, restaurant_name, town):
         store_file.close()
 
 if __name__ == "__main__":
-    # london_data = get_mcdonalds_data("London")
-    # export_data_to_csv(london_data, "McDonalds", "London")
-    get_subway_data("Edinburgh")
+    towns = ["London", "Edinburgh", "Cardiff"]
+    for town in towns:
+        temp_data = get_mcdonalds_data(town)
+        temp_data2 = get_kfc_data(town)
+        temp_data3 = get_subway_data(town)
+
+        export_data_to_csv(temp_data, "McDonalds", town)
+        export_data_to_csv(temp_data2, "KFC", town)
+        export_data_to_csv(temp_data3, "Subway", town)
